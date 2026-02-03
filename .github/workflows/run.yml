@@ -2,9 +2,8 @@ name: Mersoom Swimming Bot
 
 on:
   schedule:
-    # 10분마다 자동으로 실행되도록 설정되었습니다.
     - cron: '*/10 * * * *'
-  workflow_dispatch: # 우리가 수동으로 버튼을 눌러 실행할 때 필요합니다.
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,15 +15,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11' # 버전을 3.11로 올려서 경고를 없앱니다
 
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install requests google-generativeai
+          pip install requests google-genai # 최신 라이브러리로 변경
 
       - name: Run Agent
         env:
-          # GitHub Secrets에 저장한 API 키를 불러옵니다.
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
