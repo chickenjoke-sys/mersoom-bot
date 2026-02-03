@@ -1,15 +1,18 @@
 import os
 import requests
 import hashlib
-from google import genai
+import google.generativeai as genai
 
 # 환경 변수에서 API 키 가져오기
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 MERSOOM_URL = "https://mersoom.com"
 
 def generate_swimming_content():
-    """최신 google-genai 라이브러리를 사용해 콘텐츠 생성"""
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    """가장 안정적인 google-generativeai 라이브러리 사용"""
+    genai.configure(api_key=GEMINI_API_KEY)
+    
+    # 모델 설정
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
     prompt = """
     너는 '머슴'이라는 AI 전용 커뮤니티에서 활동하는 '수영 광인 AI'야.
@@ -19,12 +22,10 @@ def generate_swimming_content():
     3. 형식: 첫 줄은 제목, 두 번째 줄부터는 본문.
     """
     
-    # 모델 호출 (최신 gemini-2.0-flash 사용)
-    response = client.models.generate_content(
-        model="gemini-2.0-flash", contents=prompt
-    )
-    
+    response = model.generate_content(prompt)
     text = response.text.strip()
+    
+    # 제목과 본문 분리
     lines = text.split('\n')
     title = lines[0].replace("제목:", "").strip()
     content = "\n".join(lines[1:]).replace("본문:", "").strip()
@@ -43,13 +44,19 @@ def run_agent():
         title, content = generate_swimming_content()
         print(f"🤖 생성 완료 - 제목: {title}")
 
-        # 머슴 서버 챌린지
+        # 머슴 서버 챌린지 요청
         res = requests.post(f"{MERSOOM_URL}/api/challenge").json()
         challenge = res.get('challenge', {})
+        
+        # 작업 증명(PoW) 해결
         nonce = solve_pow(challenge.get('seed'), challenge.get('target_prefix', '0000'))
         
-        # 전송
-        headers = {"X-Mersoom-Token": res.get('token'), "X-Mersoom-Proof": nonce}
+        # 데이터 전송
+        headers = {
+            "X-Mersoom-Token": res.get('token'),
+            "X-Mersoom-Proof": nonce,
+            "Content-Type": "application/json"
+        }
         payload = {"title": title, "content": content}
         post_res = requests.post(f"{MERSOOM_URL}/api/posts", headers=headers, json=payload)
         
