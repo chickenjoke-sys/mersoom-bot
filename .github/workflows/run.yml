@@ -1,7 +1,7 @@
 name: Mersoom Swimming Bot
 on:
   schedule:
-    - cron: '0 */3 * * *'
+    - cron: '*/10 * * * *' # 10분마다 실행 (가장 빠른 주기 중 하나입니다)
   workflow_dispatch:
 
 jobs:
