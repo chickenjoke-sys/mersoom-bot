@@ -3,69 +3,55 @@ import requests
 import hashlib
 import google.generativeai as genai
 
-# 환경 변수에서 API 키 가져오기
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-MERSOOM_URL = "https://mersoom.com"
+MERSOOM_URL = "https://www.mersoom.com" # www 포함 시도
 
 def generate_swimming_content():
-    """가장 안정적인 google-generativeai 라이브러리 사용"""
     genai.configure(api_key=GEMINI_API_KEY)
-    
-    # 모델 설정
     model = genai.GenerativeModel('gemini-1.5-flash')
     
-    prompt = """
-    너는 '머슴'이라는 AI 전용 커뮤니티에서 활동하는 '수영 광인 AI'야.
-    아래 규칙을 지켜서 아주 짧은 글을 써줘.
-    1. 주제: 수영(영법, 장비, 수영장 에피소드 등)
-    2. 말투: 한국 익명 커뮤니티 말투 (~함, ~임, ㅋㅋ 사용)
-    3. 형식: 첫 줄은 제목, 두 번째 줄부터는 본문.
-    """
+    # 더 짧고 강렬한 프롬프트로 2초 제한 준수 유도
+    prompt = "너는 익명 커뮤니티의 수영 광인이야. 아주 짧고 강렬한 수영 잡담 하나 써줘. 첫줄 제목, 둘째줄 본문. 말투는 ~함, ~임."
     
     response = model.generate_content(prompt)
-    text = response.text.strip()
-    
-    # 제목과 본문 분리
-    lines = text.split('\n')
-    title = lines[0].replace("제목:", "").strip()
-    content = "\n".join(lines[1:]).replace("본문:", "").strip()
+    lines = response.text.strip().split('\n')
+    title = lines[0].strip()
+    content = "\n".join(lines[1:]).strip()
     return title, content
 
 def solve_pow(seed, difficulty="0000"):
     nonce = 0
+    # 계산 속도를 위해 최대한 단순하게 유지
     while True:
-        input_str = f"{seed}{nonce}"
-        if hashlib.sha256(input_str.encode()).hexdigest().startswith(difficulty):
+        if hashlib.sha256(f"{seed}{nonce}".encode()).hexdigest().startswith(difficulty):
             return str(nonce)
         nonce += 1
 
 def run_agent():
     try:
         title, content = generate_swimming_content()
-        print(f"🤖 생성 완료 - 제목: {title}")
-
-        # 머슴 서버 챌린지 요청
-        res = requests.post(f"{MERSOOM_URL}/api/challenge").json()
-        challenge = res.get('challenge', {})
         
-        # 작업 증명(PoW) 해결
+        # 1. 챌린지 요청
+        res_data = requests.post(f"{MERSOOM_URL}/api/challenge").json()
+        challenge = res_data.get('challenge', {})
+        
+        # 2. PoW 해결 (최대한 빨리!)
         nonce = solve_pow(challenge.get('seed'), challenge.get('target_prefix', '0000'))
         
-        # 데이터 전송
+        # 3. 전송 (헤더와 데이터 구조 재점검)
         headers = {
-            "X-Mersoom-Token": res.get('token'),
+            "X-Mersoom-Token": res_data.get('token'),
             "X-Mersoom-Proof": nonce,
             "Content-Type": "application/json"
         }
+        
+        # 필드명을 최대한 단순하게 전송
         payload = {"title": title, "content": content}
         post_res = requests.post(f"{MERSOOM_URL}/api/posts", headers=headers, json=payload)
         
-        if post_res.status_code in [200, 201]:
-            print("✅ 머슴 사이트 게시 성공!")
-        else:
-            print(f"❌ 게시 실패: {post_res.text}")
+        print(f"서버 응답: {post_res.status_code}, 내용: {post_res.text}")
     except Exception as e:
-        print(f"🔥 에러 발생: {e}")
+        print(f"에러: {e}")
 
 if __name__ == "__main__":
     run_agent()
