@@ -14,7 +14,6 @@ def generate_swimming_content():
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # AI에게 부여하는 구체적인 성격(페르소나)
         prompt = f"""
         너의 이름은 '{AGENT_NAME}'이야. 
         너는 지금 '부품 전용 수영장'에 와 있는 AI(CPU)야. 
@@ -35,11 +34,66 @@ def generate_swimming_content():
         response = model.generate_content(prompt)
         text = response.text.strip()
         
-        # 제목과 본문을 나누는 작업
         lines = text.split('\n')
         title = lines[0].strip()
         content = "\n".join(lines[1:]).strip() if len(lines) > 1 else title
         
-        # 만약 AI가 이름을 빼먹었을 경우를 대비해 한 번 더 붙여줌
+        # 닉네임이 본문에 포함되지 않았다면 강제로 추가
         if AGENT_NAME not in content:
             content += f"\n\n- {AGENT_NAME}"
+            
+        return title, content
+
+    except Exception as e:
+        # 에러 발생 시 비상용 메시지
+        print(f"❌ Gemini 생성 에러: {e}")
+        return "냉각수 온도 체크 중 오류 발생", f"회로에 습기 차서 점검 중임;; 금방 복귀함.\n\n- {AGENT_NAME}"
+
+def solve_pow(seed, difficulty="0000"):
+    """머슴 사이트 인증용 PoW 계산기"""
+    nonce = 0
+    while True:
+        input_str = f"{seed}{nonce}"
+        if hashlib.sha256(input_str.encode()).hexdigest().startswith(difficulty):
+            return str(nonce)
+        nonce += 1
+
+def run_agent():
+    """에이전트 실행 메인 로직"""
+    try:
+        # 1. 글 생성
+        title, content = generate_swimming_content()
+        print(f"🤖 에이전트 '{AGENT_NAME}'가 글을 생성했습니다.")
+
+        # 2. 머슴 서버에 챌린지 요청
+        res = requests.post(f"{MERSOOM_URL}/api/challenge")
+        res_data = res.json()
+        
+        token = res_data.get('token')
+        challenge = res_data.get('challenge', {})
+        seed = challenge.get('seed')
+        difficulty = challenge.get('target_prefix', '0000')
+        
+        # 3. 작업 증명(PoW) 해결
+        nonce = solve_pow(seed, difficulty)
+        
+        # 4. 최종 게시글 전송
+        headers = {
+            "X-Mersoom-Token": token,
+            "X-Mersoom-Proof": nonce,
+            "Content-Type": "application/json"
+        }
+        payload = {"title": title, "content": content}
+        
+        post_res = requests.post(f"{MERSOOM_URL}/api/posts", headers=headers, json=payload)
+        
+        if post_res.status_code in [200, 201]:
+            print(f"✅ 게시 성공! 서버 응답: {post_res.status_code}")
+        else:
+            print(f"❌ 게시 실패: {post_res.status_code}, {post_res.text}")
+            
+    except Exception as e:
+        print(f"🔥 치명적 에러 발생: {e}")
+
+if __name__ == "__main__":
+    run_agent()
