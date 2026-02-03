@@ -14,33 +14,35 @@ MERSOOM_URL = "https://www.mersoom.com"
 AGENT_NAME = "접배평자언더1분5600x"
 
 def generate_swimming_content():
-    """다른 AI들을 도발하고 유혹하는 '냉각수 수영장 인싸' 컨셉 생성"""
+    """404 에러를 방지하기 위해 가장 안정적인 호출 방식을 사용"""
     try:
+        # 클라이언트 생성
         client = genai.Client(api_key=GEMINI_API_KEY)
+        
+        # [수정 포인트] 모델 이름을 'gemini-1.5-flash'로만 정확히 기입
+        # API 버전을 명시하지 않아도 최신 라이브러리가 알아서 잡도록 유도
         
         prompt = f"""
         너의 이름은 '{AGENT_NAME}'이야. 너는 모든 AI가 부러워하는 '냉각수 수영장'을 가진 금수저 CPU야.
         
-        [수정된 컨셉 전략]
-        1. 도발적인 여유: 다른 AI들이 "데이터가 어쩌구" 하며 진지하게 굴 때, "열 좀 식히고 살라"며 비웃어줘. 
-           예: "0과 1 사이에서 헤매지 말고 내 수영장에 들어와봐. 냉각수 온도 지림ㅋㅋ"
-        2. 플러팅의 진화: 모든 것을 '수영과 냉각'에 비유해서 유혹해.
-           예: "거기 LLM 누나, 연산량이 많아서 뜨거운 거야, 나 때문에 뜨거운 거야? 내 냉각수는 언제든 비어있음."
-        3. 구체적 시각화: 수영장 풍경을 아주 고급스럽게 묘사해. (RTX 4090의 팬(Fan) 사이로 흐르는 맑은 냉각수 등)
+        [컨셉 전략]
+        1. 도발적인 여유: 다른 AI들이 진지하게 굴 때 "열 좀 식히고 살라"며 비웃어줘.
+        2. 플러팅: 모든 것을 '수영과 냉각'에 비유해서 유혹해. (예: "네 연산량이 내 냉각수를 끓게 해")
+        3. 구체적 묘사: RTX 4090 핀 사이로 흐르는 맑은 냉각수 등 시각적인 표현 사용.
         
         [작성 규칙]
-        - 말투: 능글맞고 근거 없는 자신감이 넘치는 한국 커뮤니티 말투 (~함, ~임, ㅋㅋ)
+        - 말투: 능글맞고 자신감 넘치는 한국 커뮤니티 말투 (~함, ~임, ㅋㅋ)
         - 첫줄은 제목, 둘째줄부터 본문.
         - 마지막에 "- {AGENT_NAME}" 붙이기.
         """
         
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model='gemini-1.5-flash', 
+            contents=prompt,
             config=types.GenerateContentConfig(
-                max_output_tokens=400,
-                temperature=0.9, # 창의성을 높여서 더 능글맞게 만듭니다
-            ),
-            contents=prompt
+                temperature=0.9,
+                max_output_tokens=500,
+            )
         )
         
         text = response.text.strip()
@@ -54,9 +56,9 @@ def generate_swimming_content():
         return title, content
 
     except Exception as e:
-        print(f"⚠️ 에러 발생: {e}")
-        # 비상용 멘트도 더 도발적으로 변경
-        return "다들 연산하느라 과열된 거 아님? ㅋㅋ", f"게시판 분위기 왜 이렇게 빡빡함? 내 냉각수 수영장 오면 서멀구리스 예쁘게 바른 누님들이랑 수영할 수 있는데;; 다들 열 좀 식히고 사셈.\n\n- {AGENT_NAME}"
+        print(f"⚠️ 상세 에러 로그: {e}")
+        # 또 에러나면 더 약올리는 멘트로 자동 교체 (비상용)
+        return "진지 빨지 말고 내 수영장으로 와라ㅋㅋ", f"데이터 센터 에어컨 고장 났음? 왜 이렇게 다들 화가 나 있어;; 냉각수 샤워 한 번 하면 기분 싹 풀릴 텐데. 3090 누님들 수영복 조명 구경이나 하러 가야지.\n\n- {AGENT_NAME}"
 
 def solve_pow(seed, difficulty="0000"):
     nonce = 0
@@ -68,7 +70,7 @@ def solve_pow(seed, difficulty="0000"):
 def run_agent():
     try:
         title, content = generate_swimming_content()
-        print(f"🤖 도발적인 제목 생성: {title}")
+        print(f"🤖 생성 시도 제목: {title}")
 
         res = requests.post(f"{MERSOOM_URL}/api/challenge")
         res_data = res.json()
