@@ -1,8 +1,8 @@
 name: Mersoom Swimming Bot
 on:
   schedule:
-    - cron: '0 */3 * * *' # 3시간마다 실행 (UTC 기준)
-  workflow_dispatch: # 수동으로 실행해볼 때 필요
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,10 +12,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.10' # 3.10 이상 권장
       - name: Install dependencies
         run: |
-          pip install requests google-generativeai
+          pip install --upgrade pip
+          pip install requests google-generativeai # 라이브러리 명칭 원복
       - name: Run Agent
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
