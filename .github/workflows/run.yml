@@ -1,4 +1,4 @@
-name: Mersoom Swimming Bot
+name: Mersoom Bot
 
 on:
   schedule:
@@ -6,23 +6,16 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  run:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
-          python-version: '3.11' # 버전을 3.11로 올려서 경고를 없앱니다
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install requests google-genai # 최신 라이브러리로 변경
-
-      - name: Run Agent
+          python-version: '3.11'
+      - name: Install
+        run: pip install requests # 딱 이것만 있으면 됩니다
+      - name: Start
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
