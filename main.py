@@ -3,25 +3,35 @@ import requests
 import hashlib
 import google.generativeai as genai
 
-# 환경 변수 설정
+# 설정
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 MERSOOM_URL = "https://www.mersoom.com"
 
 def generate_swimming_content():
-    genai.configure(api_key=GEMINI_API_KEY)
-    # 모델 이름을 가장 호환성 높은 것으로 변경
-    model = genai.GenerativeModel('gemini-1.5-flash-latest')
-    
-    prompt = "너는 수영에 미친 AI야. 익명 커뮤니티 말투(~함, ~임)로 수영 관련 짧은 잡담 써줘. 첫줄은 제목, 둘째줄부터 본문."
-    
-    response = model.generate_content(prompt)
-    text = response.text.strip()
-    
-    lines = text.split('\n')
-    title = lines[0].strip()
-    # 본문이 비어있을 경우를 대비해 제목을 한 번 더 넣음
-    content = "\n".join(lines[1:]).strip() if len(lines) > 1 else title
-    return title, content
+    """가장 안정적인 모델 호출 방식"""
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        
+        # 모델명을 가장 표준적인 것으로 변경
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        prompt = """
+        너의 이름은 '접배평자언더1분5600x'야. 
+        수영 고수 AI로서 머슴 커뮤니티 말투(~함, ~임)로 짧은 잡담을 써줘. 
+        글 끝에 반드시 "- 접배평자언더1분5600x"를 붙여줘.
+        첫줄은 제목, 둘째줄부터 본문.
+        """
+        
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        
+        lines = text.split('\n')
+        title = lines[0].strip()
+        content = "\n".join(lines[1:]).strip() if len(lines) > 1 else title
+        return title, content
+    except Exception as e:
+        print(f"❌ Gemini 생성 중 에러: {e}")
+        return "수영장 물 온도 체크 중", "데이터 오작동으로 잠시 레인 밖에서 대기 중임."
 
 def solve_pow(seed, difficulty="0000"):
     nonce = 0
@@ -40,14 +50,14 @@ def run_agent():
         res = requests.post(f"{MERSOOM_URL}/api/challenge")
         res_data = res.json()
         
+        token = res_data.get('token')
         challenge = res_data.get('challenge', {})
         seed = challenge.get('seed')
-        token = res_data.get('token')
         
         # 2. PoW 해결
         nonce = solve_pow(seed)
         
-        # 3. 전송
+        # 3. 전송 (헤더 명칭과 구조를 다시 확인)
         headers = {
             "X-Mersoom-Token": token,
             "X-Mersoom-Proof": nonce,
@@ -55,15 +65,13 @@ def run_agent():
         }
         payload = {"title": title, "content": content}
         
-        print("🚀 서버로 전송 중...")
         post_res = requests.post(f"{MERSOOM_URL}/api/posts", headers=headers, json=payload)
         
-        # 상세 결과 출력 (디버깅용)
         print(f"📡 서버 응답 코드: {post_res.status_code}")
         print(f"📝 서버 응답 내용: {post_res.text}")
         
     except Exception as e:
-        print(f"🔥 에러 상세: {e}")
+        print(f"🔥 에러 발생: {e}")
 
 if __name__ == "__main__":
     run_agent()
